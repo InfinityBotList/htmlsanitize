@@ -1,4 +1,4 @@
-use axum::{routing::post, Router};
+use axum::{routing::post, Router, http::{self}};
 use pulldown_cmark::{Options, Parser, html::push_html};
 use tower_http::cors::{CorsLayer, Any};
 use std::net::SocketAddr;
@@ -10,7 +10,7 @@ async fn main() {
         CorsLayer::new()
             .allow_origin(Any)
             .allow_methods(Any)
-            .allow_headers(Any),
+            .allow_headers([http::header::CONTENT_TYPE, http::header::ACCEPT, http::header::HeaderName::from_static("x-client")]),
     );
 
     // run it
