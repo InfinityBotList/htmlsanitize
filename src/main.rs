@@ -1,11 +1,17 @@
-use axum::{routing::post, Router};
+use axum::{routing::post, Router, http::{self, Method}};
 use pulldown_cmark::{Options, Parser, html::push_html};
+use tower_http::cors::{CorsLayer, Any};
 use std::net::SocketAddr;
 
 #[tokio::main]
 async fn main() {
     // build our application with a route
-    let app = Router::new().route("/", post(handler));
+    let app = Router::new().route("/", post(handler)).layer(
+        CorsLayer::new()
+            .allow_origin(Any)
+            .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+            .allow_headers([http::header::CONTENT_TYPE]),
+    );
 
     // run it
     let addr = SocketAddr::from(([127, 0, 0, 1], 5810));
