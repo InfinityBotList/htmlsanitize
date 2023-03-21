@@ -1,12 +1,14 @@
 use axum::{routing::post, Router, http::{self}};
 use pulldown_cmark::{Options, Parser, html::push_html};
-use tower_http::cors::{CorsLayer, Any};
+use tower_http::{cors::{CorsLayer, Any}, catch_panic::CatchPanicLayer};
 use std::net::SocketAddr;
 
 #[tokio::main]
 async fn main() {
     // build our application with a route
-    let app = Router::new().route("/", post(handler)).layer(
+    let app = Router::new().route("/", post(handler))
+    .layer(CatchPanicLayer::new())
+    .layer(
         CorsLayer::new()
             .allow_origin(Any)
             .allow_methods(Any)
