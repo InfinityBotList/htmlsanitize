@@ -12,7 +12,7 @@ pub fn template(
             continue;
         }
 
-        template = template.replace(&format!("{{{}}}", var.name), &var.value);
+        template = template.replace(&format!("{{{{{}}}}}", var.name), &var.value);
     }
 
     sanitize(&template)
