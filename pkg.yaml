@@ -3,5 +3,6 @@ project: "htmlsanitize"
 binary: "htmlsanitize"
 service: "htmlsanitize"
 lang_opts:
+  bindings: "/iblcdn/public/dev/bindings/htmlsanitize"
 env:
   DATABASE_URL: postgres://localhost/infinity  
