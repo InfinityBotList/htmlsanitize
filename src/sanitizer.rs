@@ -8,7 +8,7 @@ pub fn template(
     let mut template = body.to_string();
 
     for var in vars {
-        if var.name.starts_with("_") {
+        if !var.name.starts_with("_") {
             continue;
         }
 

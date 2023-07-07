@@ -47,6 +47,9 @@ pub enum Query {
     BotLongDescription {
         bot_id: String,
     },
+    BlogPost {
+        slug: String,
+    }
 }
 
 #[debug_handler]
@@ -87,6 +90,26 @@ pub async fn query(
                     ))
                 },
                 None => Err(ServerError::Error("Bot not found".to_string()))
+            }
+        },
+        Query::BlogPost { slug } => {
+            let row = sqlx::query!(
+                "SELECT content FROM blogs WHERE slug = $1",
+                slug
+            )
+            .fetch_optional(&app_state.pool)
+            .await
+            .map_err(|e| ServerError::Error(e.to_string()))?;
+
+            match row {
+                Some(post) => {
+                    Ok(ServerResponse::Response(
+                        sanitizer::sanitize(
+                            &post.content,
+                        )
+                    ))
+                },
+                None => Err(ServerError::Error("Blog post not found".to_string()))
             }
         },
     }
