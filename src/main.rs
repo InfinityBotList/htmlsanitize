@@ -28,7 +28,6 @@ async fn main() {
 
     // build our application with a route
     let app = Router::new()
-    .route("/", post(sanitize_handler))
     .route("/query", post(query::query))
     .with_state(state)
     .layer(CatchPanicLayer::new())
@@ -46,10 +45,4 @@ async fn main() {
         .serve(app.into_make_service())
         .await
         .unwrap();
-}
-
-async fn sanitize_handler(
-    body: String,
-) -> String {
-    sanitizer::sanitize(&body)
 }
