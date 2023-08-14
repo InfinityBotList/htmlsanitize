@@ -28,7 +28,7 @@ async fn main() {
 
     use utoipa::OpenApi;
     #[derive(OpenApi)]
-    #[openapi(paths(query::query), components(schemas(query::ServerResponse, query::ServerError, query::Query)))]
+    #[openapi(paths(query::query), components(schemas(query::ServerResponse, query::ServerError, query::Query, types::HSLink)))]
     struct ApiDoc;
 
     async fn docs() -> impl IntoResponse {
