@@ -9,6 +9,7 @@ strip = true  # Automatically strip symbols from the binary.
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+utoipa = { version = "3.4.3", features = ["axum_extras"] }
 axum = "0.6"
 axum-macros = "0.3"
 tower-http = { version = "0.3", features = ["cors", "catch-panic"] }

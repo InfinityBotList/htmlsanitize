@@ -1,4 +1,4 @@
-use axum::{routing::post, Router, http};
+use axum::{routing::{post, get}, Router, http::{self, HeaderMap, StatusCode}, response::IntoResponse};
 use sqlx::postgres::PgPoolOptions;
 use tower_http::{cors::{CorsLayer, Any}, catch_panic::CatchPanicLayer};
 use std::{net::SocketAddr, sync::Arc};
@@ -26,8 +26,26 @@ async fn main() {
             .expect("Could not initialize connection")
     });
 
+    use utoipa::OpenApi;
+    #[derive(OpenApi)]
+    #[openapi(paths(query::query), components(schemas(query::ServerResponse, query::ServerError, query::Query)))]
+    struct ApiDoc;
+
+    async fn docs() -> impl IntoResponse {
+        let mut headers = HeaderMap::new();
+        headers.insert("Content-Type", "application/json".parse().unwrap());
+        let data = ApiDoc::openapi().to_json();
+
+        if let Ok(data) = data {
+            return (headers, data).into_response();
+        }
+
+        (StatusCode::INTERNAL_SERVER_ERROR, "Failed to generate docs".to_string()).into_response()
+    }
+
     // build our application with a route
     let app = Router::new()
+    .route("/openapi", get(docs))
     .route("/query", post(query::query))
     .with_state(state)
     .layer(CatchPanicLayer::new())

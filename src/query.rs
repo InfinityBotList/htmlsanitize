@@ -4,9 +4,11 @@ use axum::{response::{IntoResponse, Response}, http::StatusCode, extract::State,
 use axum_macros::debug_handler;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
+use utoipa::ToSchema;
 
 use crate::{types::{AppState, HSLink}, sanitizer};
 
+#[derive(ToSchema)]
 pub enum ServerError {
     Error(String),
 }
@@ -19,6 +21,7 @@ impl IntoResponse for ServerError {
     }
 }
 
+#[derive(ToSchema)]
 pub enum ServerResponse {
     Response(String),
 }
@@ -31,7 +34,7 @@ impl IntoResponse for ServerResponse {
     }
 }
 
-#[derive(Serialize, Deserialize, TS)]
+#[derive(Serialize, Deserialize, TS, ToSchema)]
 #[ts(export, export_to = ".generated/Query.ts")]
 pub enum Query {
     /// Sanitize a raw unparsed MD/HTML string
@@ -47,11 +50,24 @@ pub enum Query {
     BotLongDescription {
         bot_id: String,
     },
+    /// Sanitize a blog posts HTML/MD content
     BlogPost {
         slug: String,
     }
 }
 
+/// Sanitize Content
+///
+/// This is the main API exposed by htmlsanitize. It is used to sanitize content.
+#[utoipa::path(
+    post,
+    request_body = RPCRequest,
+    path = "/query",
+    responses(
+        (status = 200, description = "Content", body = String),
+        (status = BAD_REQUEST, description = "An error occured", body = String),
+    ),
+)]
 #[debug_handler]
 pub async fn query(
     State(app_state): State<Arc<AppState>>,

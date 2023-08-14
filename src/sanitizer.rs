@@ -8,7 +8,7 @@ pub fn template(
     let mut template = body.to_string();
 
     for var in vars {
-        if !var.name.starts_with("_") {
+        if !var.name.starts_with('_') {
             continue;
         }
 
@@ -23,7 +23,7 @@ pub fn sanitize(
 ) -> String {
     // Parse to HTML
     let options = Options::all();
-    let md_parse = Parser::new_ext(&body, options);
+    let md_parse = Parser::new_ext(body, options);
     let mut html = String::new();
     push_html(&mut html, md_parse);
 
