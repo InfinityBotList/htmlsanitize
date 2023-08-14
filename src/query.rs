@@ -61,7 +61,7 @@ pub enum Query {
 /// This is the main API exposed by htmlsanitize. It is used to sanitize content.
 #[utoipa::path(
     post,
-    request_body = RPCRequest,
+    request_body = Query,
     path = "/query",
     responses(
         (status = 200, description = "Content", body = String),
