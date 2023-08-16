@@ -50,6 +50,10 @@ pub enum Query {
     BotLongDescription {
         bot_id: String,
     },
+    /// Sanitize the long description of a server
+    ServerLongDescription {
+        server_id: String,
+    },
     /// Sanitize a blog posts HTML/MD content
     BlogPost {
         slug: String,
@@ -101,6 +105,30 @@ pub async fn query(
                     Ok(ServerResponse::Response(
                         sanitizer::template(
                             &bot.long,
+                            extra_links
+                        )
+                    ))
+                },
+                None => Err(ServerError::Error("Bot not found".to_string()))
+            }
+        },
+        Query::ServerLongDescription { server_id } => {
+            let row = sqlx::query!(
+                "SELECT long, extra_links FROM servers WHERE server_id = $1",
+                server_id
+            )
+            .fetch_optional(&app_state.pool)
+            .await
+            .map_err(|e| ServerError::Error(e.to_string()))?;
+
+            match row {
+                Some(server) => {
+                    // Deserialize the extra links
+                    let extra_links: Vec<HSLink> = serde_json::from_value(server.extra_links).map_err(|e| ServerError::Error(e.to_string()))?;
+
+                    Ok(ServerResponse::Response(
+                        sanitizer::template(
+                            &server.long,
                             extra_links
                         )
                     ))
