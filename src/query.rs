@@ -133,7 +133,7 @@ pub async fn query(
                         )
                     ))
                 },
-                None => Err(ServerError::Error("Bot not found".to_string()))
+                None => Err(ServerError::Error("Server not found".to_string()))
             }
         },
         Query::BlogPost { slug } => {
