@@ -1,8 +1,0 @@
-language: rust
-project: "htmlsanitize"
-binary: "htmlsanitize"
-service: "htmlsanitize"
-lang_opts:
-  bindings: "/silverpelt/cdn/ibl/dev/bindings/htmlsanitize"
-env:
-  DATABASE_URL: postgres://localhost/infinity  

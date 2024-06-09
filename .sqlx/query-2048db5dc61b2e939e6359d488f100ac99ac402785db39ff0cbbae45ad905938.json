@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT long, extra_links FROM bots WHERE bot_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "long",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "extra_links",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "2048db5dc61b2e939e6359d488f100ac99ac402785db39ff0cbbae45ad905938"
+}

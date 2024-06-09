@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT long, extra_links FROM servers WHERE server_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "long",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "extra_links",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "d8231f1fa1d1a28c291dfb147d4bdcca4b3d1965a53eb65c2a3f41bf9abbe26d"
+}
