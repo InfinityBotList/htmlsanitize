@@ -9,6 +9,7 @@ pub static CONFIG: Lazy<Config> = Lazy::new(|| Config::load().expect("Failed to 
 #[derive(Serialize, Deserialize, Default)]
 pub struct Config {
     pub database_url: String,
+    pub port: u16
 }
 
 impl Config {

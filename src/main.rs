@@ -1,7 +1,7 @@
 use axum::{routing::{post, get}, Router, http::{self, HeaderMap, StatusCode}, response::IntoResponse};
 use sqlx::postgres::PgPoolOptions;
 use tower_http::{cors::{CorsLayer, Any}, catch_panic::CatchPanicLayer};
-use std::{net::SocketAddr, sync::Arc};
+use std::sync::Arc;
 
 mod sanitizer;
 mod query;
@@ -57,10 +57,14 @@ async fn main() {
     );
 
     // run it
-    let addr = SocketAddr::from(([127, 0, 0, 1], 5810));
-    println!("listening on {}", addr);
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
+    let addr = format!("127.0.0.1:{}", crate::config::CONFIG.port);
+
+    println!("Starting server on {}", addr);
+    let listener = tokio::net::TcpListener::bind(addr)
+        .await
+        .expect("Failed to bind to port");
+
+    axum::serve(listener, app.into_make_service())
         .await
         .unwrap();
 }
