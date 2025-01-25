@@ -1,12 +1,35 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
-use axum::{response::{IntoResponse, Response}, http::StatusCode, extract::State, Json};
+use axum::{
+    extract::State,
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
 use axum_macros::debug_handler;
+use moka::future::Cache;
 use serde::{Deserialize, Serialize};
+use std::sync::LazyLock;
 use ts_rs::TS;
 use utoipa::ToSchema;
 
-use crate::{types::{AppState, HSLink}, sanitizer};
+static ASSETS_CACHE: LazyLock<Cache<String, String>> = LazyLock::new(|| {
+    Cache::builder()
+        .time_to_live(Duration::from_secs(300))
+        .build()
+});
+static PATHS: LazyLock<HashMap<String, String>> = LazyLock::new(|| {
+    let paths: HashMap<String, String> = [("changelogs".to_string(), "CHANGELOGS.md".to_string())]
+        .iter()
+        .cloned()
+        .collect();
+    paths
+});
+
+use crate::{
+    sanitizer,
+    types::{AppState, HSLink},
+};
 
 #[derive(ToSchema)]
 pub enum ServerError {
@@ -38,26 +61,20 @@ impl IntoResponse for ServerResponse {
 #[ts(export, export_to = ".generated/Query.ts")]
 pub enum Query {
     /// Sanitize a raw unparsed MD/HTML string
-    SanitizeRaw {
-        body: String,
-    },
+    SanitizeRaw { body: String },
+    /// Sanitize a CDN path
+    SanitizeCDN { asset: String },
     /// Sanitize a raw unparsed MD/HTML string with extra links
     SanitizeTemplate {
         body: String,
         extra_links: Vec<HSLink>,
     },
     /// Sanitize the long description of a bot
-    BotLongDescription {
-        bot_id: String,
-    },
+    BotLongDescription { bot_id: String },
     /// Sanitize the long description of a server
-    ServerLongDescription {
-        server_id: String,
-    },
+    ServerLongDescription { server_id: String },
     /// Sanitize a blog posts HTML/MD content
-    BlogPost {
-        slug: String,
-    }
+    BlogPost { slug: String },
 }
 
 /// Sanitize Content
@@ -82,12 +99,12 @@ pub async fn query(
             let sanitized = sanitizer::sanitize(&body);
 
             Ok(ServerResponse::Response(sanitized))
-        },
+        }
         Query::SanitizeTemplate { body, extra_links } => {
             let sanitized = sanitizer::template(&body, extra_links);
 
             Ok(ServerResponse::Response(sanitized))
-        },
+        }
         Query::BotLongDescription { bot_id } => {
             let row = sqlx::query!(
                 "SELECT long, extra_links FROM bots WHERE bot_id = $1",
@@ -100,18 +117,17 @@ pub async fn query(
             match row {
                 Some(bot) => {
                     // Deserialize the extra links
-                    let extra_links: Vec<HSLink> = serde_json::from_value(bot.extra_links).map_err(|e| ServerError::Error(e.to_string()))?;
+                    let extra_links: Vec<HSLink> = serde_json::from_value(bot.extra_links)
+                        .map_err(|e| ServerError::Error(e.to_string()))?;
 
-                    Ok(ServerResponse::Response(
-                        sanitizer::template(
-                            &bot.long,
-                            extra_links
-                        )
-                    ))
-                },
-                None => Err(ServerError::Error("Bot not found".to_string()))
+                    Ok(ServerResponse::Response(sanitizer::template(
+                        &bot.long,
+                        extra_links,
+                    )))
+                }
+                None => Err(ServerError::Error("Bot not found".to_string())),
             }
-        },
+        }
         Query::ServerLongDescription { server_id } => {
             let row = sqlx::query!(
                 "SELECT long, extra_links FROM servers WHERE server_id = $1",
@@ -124,37 +140,47 @@ pub async fn query(
             match row {
                 Some(server) => {
                     // Deserialize the extra links
-                    let extra_links: Vec<HSLink> = serde_json::from_value(server.extra_links).map_err(|e| ServerError::Error(e.to_string()))?;
+                    let extra_links: Vec<HSLink> = serde_json::from_value(server.extra_links)
+                        .map_err(|e| ServerError::Error(e.to_string()))?;
 
-                    Ok(ServerResponse::Response(
-                        sanitizer::template(
-                            &server.long,
-                            extra_links
-                        )
-                    ))
-                },
-                None => Err(ServerError::Error("Server not found".to_string()))
+                    Ok(ServerResponse::Response(sanitizer::template(
+                        &server.long,
+                        extra_links,
+                    )))
+                }
+                None => Err(ServerError::Error("Server not found".to_string())),
             }
-        },
+        }
         Query::BlogPost { slug } => {
-            let row = sqlx::query!(
-                "SELECT content FROM blogs WHERE slug = $1",
-                slug
-            )
-            .fetch_optional(&app_state.pool)
-            .await
-            .map_err(|e| ServerError::Error(e.to_string()))?;
+            let row = sqlx::query!("SELECT content FROM blogs WHERE slug = $1", slug)
+                .fetch_optional(&app_state.pool)
+                .await
+                .map_err(|e| ServerError::Error(e.to_string()))?;
 
             match row {
-                Some(post) => {
-                    Ok(ServerResponse::Response(
-                        sanitizer::sanitize(
-                            &post.content,
-                        )
-                    ))
-                },
-                None => Err(ServerError::Error("Blog post not found".to_string()))
+                Some(post) => Ok(ServerResponse::Response(sanitizer::sanitize(&post.content))),
+                None => Err(ServerError::Error("Blog post not found".to_string())),
             }
-        },
+        }
+        Query::SanitizeCDN { asset } => {
+            let path = PATHS.get(&asset).ok_or_else(|| {
+                ServerError::Error("Asset not registered with htmlsanitize?".to_string())
+            })?;
+
+            if let Some(sanitized) = ASSETS_CACHE.get(path).await {
+                return Ok(ServerResponse::Response(sanitized));
+            }
+
+            let content =
+                tokio::fs::read_to_string(format!("{}/{}", crate::config::CONFIG.cdn_root, path))
+                    .await
+                    .map_err(|e| ServerError::Error(e.to_string()))?;
+            let sanitized = sanitizer::sanitize(&content);
+            ASSETS_CACHE
+                .insert(path.to_string(), sanitized.clone())
+                .await;
+
+            Ok(ServerResponse::Response(sanitized))
+        }
     }
 }
