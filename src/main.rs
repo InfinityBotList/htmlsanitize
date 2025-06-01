@@ -57,7 +57,7 @@ async fn main() {
     );
 
     // run it
-    let addr = format!("127.0.0.1:{}", crate::config::CONFIG.port);
+    let addr = format!("0.0.0.0:{}", crate::config::CONFIG.port);
 
     println!("Starting server on {}", addr);
     let listener = tokio::net::TcpListener::bind(addr)
