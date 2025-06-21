@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use axum::{
     extract::State,
@@ -17,13 +17,6 @@ static ASSETS_CACHE: LazyLock<Cache<String, String>> = LazyLock::new(|| {
     Cache::builder()
         .time_to_live(Duration::from_secs(300))
         .build()
-});
-static PATHS: LazyLock<HashMap<String, String>> = LazyLock::new(|| {
-    let paths: HashMap<String, String> = [("changelogs".to_string(), "CHANGELOGS.md".to_string())]
-        .iter()
-        .cloned()
-        .collect();
-    paths
 });
 
 use crate::{
@@ -163,9 +156,12 @@ pub async fn query(
             }
         }
         Query::SanitizeCDN { asset } => {
-            let path = PATHS.get(&asset).ok_or_else(|| {
-                ServerError::Error("Asset not registered with htmlsanitize?".to_string())
-            })?;
+            let path = crate::config::CONFIG
+                .cdn_assets
+                .get(&asset)
+                .ok_or_else(|| {
+                    ServerError::Error("Asset not registered with htmlsanitize?".to_string())
+                })?;
 
             if let Some(sanitized) = ASSETS_CACHE.get(path).await {
                 return Ok(ServerResponse::Response(sanitized));

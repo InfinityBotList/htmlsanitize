@@ -1,7 +1,7 @@
 use crate::Error;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use std::{fs::File, io::Write};
+use std::{collections::HashMap, fs::File, io::Write};
 
 /// Global config object
 pub static CONFIG: Lazy<Config> = Lazy::new(|| Config::load().expect("Failed to load config"));
@@ -11,6 +11,7 @@ pub struct Config {
     pub database_url: String,
     pub port: u16,
     pub cdn_root: String,
+    pub cdn_assets: HashMap<String, String>,
 }
 
 impl Config {
